@@ -68,6 +68,15 @@ exports['implode'] = {
   },
 
   'circular dependencies': function() {
+    var dep = { b: 'b'},
+        dep2 = { a: 'a'};
+    dep.sibling = dep2;
+    dep2.sibling = dep;
+    var value = { a: dep2, b: dep };
+    dep.parent = value;
+    dep2.parent = value;
+
+    console.log(value);
 
   }
 

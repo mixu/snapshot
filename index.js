@@ -40,6 +40,12 @@ function implode(value, lookupfn) {
   }
 }
 
+function implode(scope) {
+  var seenObjs = [];
+
+
+}
+
 function explode(value) {
   return JSON.parse(value);
 }
