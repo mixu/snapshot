@@ -27,7 +27,7 @@ exports['implode'] = {
           imploded = implode({ a: value }),
           evaled;
       console.log(value, imploded);
-      evaled = eval('(' + imploded +')').a;
+      evaled = eval(imploded).a;
       if (typeof value !== 'function') {
         // deepequal doesn't work with function
         assert.deepEqual(evaled, value, 'can serialize '+ name);
@@ -40,14 +40,18 @@ exports['implode'] = {
   },
 
   'a custom class with serialize function': function() {
-    var Foo = function(opts) {
+    var Foo = function(name, opts) {
+      this.name = name,
       this.opts = opts;
     };
-    Foo.prototype.serialize = function(ser) {
-      return ['Foo', this.opts];
+    Foo.prototype.serialize = function() {
+      return ['Foo', this.name, this.opts];
     };
+    Foo.prototype.deserialize = function(opts) {
+      this.opts = opts;
+    }
 
-    var value = new Foo({ bar: 'baz'});
+    var value = new Foo('FooObj', { bar: 'baz'});
 
     console.log(typeof value);
     console.log(Object.prototype.toString.call(value));
@@ -58,7 +62,7 @@ exports['implode'] = {
     var imploded = implode({ a: value }),
         evaled;
     console.log(value, imploded);
-    evaled = eval('(' + imploded +')').a;
+    evaled = eval(imploded).a;
     assert.deepEqual(evaled, value, 'can serialize custom class');
     assert.equal(typeof evaled, typeof value, 'has same type');
     assert.ok(value instanceof Foo);
@@ -68,15 +72,17 @@ exports['implode'] = {
   },
 
   'circular dependencies': function() {
-    var dep = { b: 'b'},
-        dep2 = { a: 'a'};
-    dep.sibling = dep2;
-    dep2.sibling = dep;
-    var value = { a: dep2, b: dep };
-    dep.parent = value;
-    dep2.parent = value;
+    var value = { a: { a: 'a'}, b: { b: 'b'} };
+    value.a.sibling = value.b;
+    value.b.sibling = value.a;
+    value.a.parent = value;
+    value.b.parent = value;
 
     console.log(value);
+
+    var imploded = implode(value);
+    console.log(imploded);
+
 
   }
 
