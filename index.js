@@ -6,6 +6,7 @@ function snapshot(scope) {
       links = [];
 
   function Reference(to) {
+    this.from = null;
     this.to = to;
   }
 
@@ -39,7 +40,7 @@ function snapshot(scope) {
           // object (can contain circular depencency)
           var index = seenObjs.indexOf(value);
           if(index > -1) {
-            console.log('Circular dependency from ' + (parent ? 'root' : parent) + ' to ' + index);
+            console.log('Circular dependency from ' + parent + ' to ' + index);
             return new Reference(index); //'Obj['+index+']';
           } else {
             index = seenObjs.length;

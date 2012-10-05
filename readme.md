@@ -30,11 +30,13 @@ The rest of the arguments should be arguments passed to the constructor when the
 
 The definitions of the constructors are not serialized. Instead, they should be made available in a different way.
 
+## Multiple references
+
+For objects which are referred to more than once, if [reference1] === [reference2] during the serialization, then the object will be only instantiated once in the serialized output. The other references will reuse the same instance.
+
 ## Circular structures
 
 Supports circular structures.
-
-For objects which are referred to more than once, if [reference1] === [reference2] during the serialization, then the object will be only instantiated once in the serialized output. The other references will reuse the same instance.
 
 For primitive objects, circular references can be resolved by transforming them into two steps:
 
