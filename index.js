@@ -88,7 +88,7 @@ function snapshot(scope) {
 
   console.log(links);
 
-  return ';(function() { var Obj = [' + objects.join(',')+'];\n' +
+  return '(function() { var Obj = [' + objects.join(',')+'];\n' +
           links.map(function(link) {
             if(!link.isObject) {
               return 'Obj['+link.from+'].'+link.key+' = Obj['+link.to+'];';
