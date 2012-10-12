@@ -47,9 +47,10 @@ exports['implode'] = {
     Foo.prototype.serialize = function() {
       return ['Foo', this.name, this.opts];
     };
-    Foo.prototype.deserialize = function(opts) {
+    Foo.prototype.deserialize = function(name, opts) {
+      this.name = name;
       this.opts = opts;
-    }
+    };
 
     var value = new Foo('FooObj', { bar: 'baz'});
 
@@ -62,7 +63,10 @@ exports['implode'] = {
     var imploded = implode({ a: value }),
         evaled;
     console.log(value, imploded);
-    evaled = eval(imploded).a;
+    evaled = eval(imploded);
+    console.log(evaled);
+
+    evaled = evaled.a;
     assert.deepEqual(evaled, value, 'can serialize custom class');
     assert.equal(typeof evaled, typeof value, 'has same type');
     assert.ok(value instanceof Foo);
@@ -91,7 +95,7 @@ exports['implode'] = {
 
 // if this module is the script being run, then run the tests:
 if (module == require.main) {
-  var mocha = require('child_process').spawn('mocha', [ '--colors', '--ui', 'exports', '--reporter', 'spec', __filename ]);
+  var mocha = require('child_process').spawn('mocha', [ '--colors', '--ui', 'exports', '--bail', '--reporter', 'spec', __filename ]);
   mocha.stdout.pipe(process.stdout);
   mocha.stderr.pipe(process.stderr);
 }

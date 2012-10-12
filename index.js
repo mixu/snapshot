@@ -3,7 +3,8 @@ var util = require('util');
 function snapshot(scope) {
   var seenObjs = [ ],
       objects = [ ],
-      links = [];
+      links = [],
+      deserializeParams = [];
 
   function Reference(to) {
     this.from = null;
@@ -51,18 +52,17 @@ function snapshot(scope) {
           if(value.serialize && typeof value.serialize === 'function') {
             var parts = value.serialize();
             console.log('parts:', parts);
-            objects[index] = 'new ' +parts.shift()+'('+parts.map(function(item, key) {
-              var val = implode(item, index);
-              console.log('val', val);
-              if(val instanceof Reference) {
-                val.from = index;
-                val.isObject = true;
-                links.push(val);
-                return 'null';
-              } else {
-                return val;
-              }
-            }).join(',')+')';
+            objects[index] = 'new ' +parts.shift()+'()';
+            // store all params
+            deserializeParams[index] = parts.map(function(item, key) {
+                          var val = implode(item, index);
+                          console.log('val', val);
+                          if(val instanceof Reference) {
+                            val.from = index;
+                            val.isObject = true;
+                          }
+                          return val;
+                        });
           } else {
             objects[index] = '{ ' + Object.keys(value).map(function(key) {
               var val = implode(value[key], index);
@@ -90,11 +90,16 @@ function snapshot(scope) {
 
   return '(function() { var Obj = [' + objects.join(',')+'];\n' +
           links.map(function(link) {
-            if(!link.isObject) {
-              return 'Obj['+link.from+'].'+link.key+' = Obj['+link.to+'];';
-            } else {
-              return 'Obj['+link.from+'].deserialize(Obj['+link.to+']);'
-            }
+            return 'Obj['+link.from+'].'+link.key+' = Obj['+link.to+'];';
+          }).join('\n')+
+          deserializeParams.map(function(init, index) {
+            return 'Obj['+index+'].deserialize('+init.map(function(val){
+                if(val instanceof Reference && val.isObject) {
+                  return 'Obj['+val.to+']';
+                } else {
+                  return val;
+                }
+              }).join(',')+');'
           }).join('\n')+
           '\n return Obj[0];}());';
 }
