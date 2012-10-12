@@ -1,0 +1,15 @@
+{
+  "name": "snapshot",
+  "version": "0.0.0",
+  "description": "JS state serialization",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mixu/snapshot.git"
+  },
+  "author": "Mikito Takada <mikito.takada@gmail.com>",
+  "license": "BSD"
+}
