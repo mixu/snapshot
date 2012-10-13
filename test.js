@@ -86,7 +86,27 @@ exports['implode'] = {
 
     var imploded = implode(value);
     console.log(imploded);
+  },
 
+  'array of objects': function() {
+    var Foo = function(name) {
+      this.name = name;
+    };
+    Foo.prototype.serialize = function() {
+      return ['Foo', this.name];
+    };
+    Foo.prototype.deserialize = function(name) {
+      this.name = name;
+    };
+    var value = [ new Foo('a'), new Foo('b'), new Foo('c')];
+    var imploded = implode(value),
+        evaled;
+    console.log(value, imploded);
+    evaled = eval(imploded);
+    console.log(evaled);
+
+    assert.equal(typeof evaled, typeof value, 'has same type');
+    assert.equal(toStr(evaled), toStr(value), 'has same string when passed to native toString');
 
   }
 
