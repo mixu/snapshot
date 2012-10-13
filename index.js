@@ -28,7 +28,15 @@ function snapshot(scope) {
         return 'null';
       }
       if(stype === '[object Array]') {
-        return '[' + value.map(function(i) { return implode(i); }) +']';
+        return '[' + value.map(function(i) {
+          var val = implode(i);
+          console.log('array!!!', i, val);
+          if(val instanceof Reference) {
+            return 'Obj['+val.to+']';
+          } else {
+            return val;
+          }
+        }) +']';
       } else if (stype === '[object RegExp]') {
         return value.toString();
       } else if (stype === '[object Date]') {

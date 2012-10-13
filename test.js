@@ -98,7 +98,7 @@ exports['implode'] = {
     Foo.prototype.deserialize = function(name) {
       this.name = name;
     };
-    var value = [ new Foo('a'), new Foo('b'), new Foo('c')];
+    var value =  { a: [ new Foo('a'), new Foo('b'), new Foo('c')] };
     var imploded = implode(value),
         evaled;
     console.log(value, imploded);
