@@ -1,58 +1,43 @@
 # Snapshot
 
-## Fairly robust Javascript variable/state/scope serialization
+## Serialize circular references, custom objects and other types not supported by JSON
 
-JSON allows you to store strings, numbers and booleans.
+JSON allows you to store strings, numbers, booleans and non-circular structures.
 
-Snapshot allows you to also store Regexps, Dates, (potentially circular) references to other objects, non-native functions and custom classes that define a serialize()/deserialize() function.
+JSON can't serialize 1) circular references, 2) non-hash ({}) objects, 3) object references.
+
+Snapshot does. It allows you to also store Regexps, Dates, non-native functions, circular references to other objects and custom classes as long as they define a serialize()/deserialize() function.
 
 The output is a self-contained, evaluable function rather than JSON. This makes it ideal for snapshotting the state of an application and sending that state elsewhere, e.g. to the client from a server.
 
 For example:
 
-    var snapshot = require('snapshot');
+```javascript
+var snapshot = require('snapshot');
 
-    // set up an object that contains a Date and Regexp
-    var value = { a: { a: new Date() }, b: { b: /fo[o]+/} };
-    // create a bunch of circular references between the objects
-    value.a.sibling = value.b;
-    value.b.sibling = value.a;
-    value.a.parent = value;
-    value.b.parent = value;
+// set up an object that contains a Date and Regexp
+var value = { a: { a: new Date() }, b: { b: /fo[o]+/} };
+// create a bunch of circular references between the objects
+value.a.sibling = value.b;
+value.b.sibling = value.a;
+value.a.parent = value;
+value.b.parent = value;
 
-    var imploded = snapshot(value);
+var imploded = snapshot(value);
 
-    // evaluate the resulting JS code
-    var evaled = eval(imploded);
-    // verify that the structure is the same, and
-    // that the objects are instances of the right types
-    assert.ok(evaled.a.sibling === evaled.b);
-    assert.ok(evaled.b.sibling === evaled.a);
-    assert.ok(evaled.a.parent === evaled);
-    assert.ok(evaled.b.parent === evaled);
-    assert.ok(evaled.a.a instanceof Date);
-    assert.equal(evaled.a.a.getTime(), value.a.a.getTime());
-    assert.ok(evaled.b.b instanceof RegExp);
-    assert.equal(evaled.b.b.toString(), value.b.b.toString());
-
-## Supported:
-
-- Booleans
-- Numbers
-- Strings
-- Dates
-- Regular expressions
-- Functions (except native functions which cannot be converted easily)
-- null
-- undefined
-- object hashes consisting of any supported value
-- arrays consisting of any supported value
-- Instances of objects that define a serialize() and a deserialize() function
-
-## Unsupported
-
-- native functions (e.g. you cannot serialize a reference to Array.prototype.map)
-- instances of objects that do not define a serialize() function (these will be serialized like object hashes, but they are not restored as instances of the right class)
+// evaluate the resulting JS code
+var evaled = eval(imploded);
+// verify that the structure is the same, and
+// that the objects are instances of the right types
+assert.ok(evaled.a.sibling === evaled.b);
+assert.ok(evaled.b.sibling === evaled.a);
+assert.ok(evaled.a.parent === evaled);
+assert.ok(evaled.b.parent === evaled);
+assert.ok(evaled.a.a instanceof Date);
+assert.equal(evaled.a.a.getTime(), value.a.a.getTime());
+assert.ok(evaled.b.b instanceof RegExp);
+assert.equal(evaled.b.b.toString(), value.b.b.toString());
+```
 
 ## Installation
 
@@ -65,6 +50,19 @@ For example:
 - `.snapshot(hash)`: given a object hash, creates a string which is a standalone Javascript function that can be evaluated to produce the same objects with the right classes (as long as the definitions for custom objects are also available).
 
 Note again, that the argument must be a single hash - but it can contain any data.
+
+## Supported:
+
+- Booleans, Numbers, Strings, null, undefined
+- Dates, Regular expressions
+- Non-native functions
+- Object hashes and Arrays consisting of any supported value
+- Instances of objects that define a serialize() and a deserialize() function
+
+## Unsupported
+
+- native functions (e.g. you cannot serialize a reference to Array.prototype.map)
+- instances of objects that do not define a serialize() function
 
 ## Multiple references
 

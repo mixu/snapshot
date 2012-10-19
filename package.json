@@ -1,7 +1,8 @@
 {
   "name": "snapshot",
   "version": "0.0.0",
-  "description": "JS state serialization",
+  "description": "Serialize circular references, custom objects and other types not supported by JSON",
+  "keywords": [ "serialization", "stringify", "json", "serialize", "circular" ],
   "main": "index.js",
   "scripts": {
     "test": "node test.js"
