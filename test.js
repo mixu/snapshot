@@ -69,7 +69,7 @@ exports['snapshot'] = {
   },
 
   'circular dependencies': function() {
-    var value = { a: { a: 'a'}, b: { b: 'b'} };
+    var value = { a: { a: new Date() }, b: { b: /fo[o]+/} };
     value.a.sibling = value.b;
     value.b.sibling = value.a;
     value.a.parent = value;
@@ -86,8 +86,10 @@ exports['snapshot'] = {
     assert.ok(evaled.b.sibling === evaled.a);
     assert.ok(evaled.a.parent === evaled);
     assert.ok(evaled.b.parent === evaled);
-    assert.ok(evaled.a.a === 'a');
-    assert.ok(evaled.b.b === 'b');
+    assert.ok(evaled.a.a instanceof Date);
+    assert.equal(evaled.a.a.getTime(), value.a.a.getTime());
+    assert.ok(evaled.b.b instanceof RegExp);
+    assert.equal(evaled.b.b.toString(), value.b.b.toString());
   },
 
   'array of objects with circular references': function() {

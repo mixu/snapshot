@@ -1,6 +1,39 @@
 # Snapshot
 
-## Javascript variable/state/scope serialization
+## Fairly robust Javascript variable/state/scope serialization
+
+JSON allows you to store strings, numbers and booleans.
+
+Snapshot allows you to also store Regexps, Dates, (potentially circular) references to other objects, non-native functions and custom classes that define a serialize()/deserialize() function.
+
+The output is a self-contained, evaluable function rather than JSON. This makes it ideal for snapshotting the state of an application and sending that state elsewhere, e.g. to the client from a server.
+
+For example:
+
+    var snapshot = require('snapshot');
+
+    // set up an object that contains a Date and Regexp
+    var value = { a: { a: new Date() }, b: { b: /fo[o]+/} };
+    // create a bunch of circular references between the objects
+    value.a.sibling = value.b;
+    value.b.sibling = value.a;
+    value.a.parent = value;
+    value.b.parent = value;
+
+    var imploded = snapshot(value);
+
+    // evaluate the resulting JS code
+    var evaled = eval(imploded);
+    // verify that the structure is the same, and
+    // that the objects are instances of the right types
+    assert.ok(evaled.a.sibling === evaled.b);
+    assert.ok(evaled.b.sibling === evaled.a);
+    assert.ok(evaled.a.parent === evaled);
+    assert.ok(evaled.b.parent === evaled);
+    assert.ok(evaled.a.a instanceof Date);
+    assert.equal(evaled.a.a.getTime(), value.a.a.getTime());
+    assert.ok(evaled.b.b instanceof RegExp);
+    assert.equal(evaled.b.b.toString(), value.b.b.toString());
 
 ## Supported:
 
@@ -33,26 +66,15 @@
 
 Note again, that the argument must be a single hash - but it can contain any data.
 
-## Example
+## Multiple references
 
-    var snapshot = require('snapshot');
+For objects which are referred to more than once, if [reference1] === [reference2] during the serialization, then the object will be only instantiated once in the serialized output. The other references will reuse the same instance.
 
-    var value = { a: { a: 'a'}, b: { b: 'b'} };
-    value.a.sibling = value.b;
-    value.b.sibling = value.a;
-    value.a.parent = value;
-    value.b.parent = value;
+## Circular structures
 
-    var imploded = snapshot(value),
-        // using eval() to run the result
-        evaled = eval(imploded);
+Circular structures can be serialized and deserialized. This is made possible even for custom objects, as long as they follow the rules.
 
-    assert.ok(evaled.a.sibling === evaled.b);
-    assert.ok(evaled.b.sibling === evaled.a);
-    assert.ok(evaled.a.parent === evaled);
-    assert.ok(evaled.b.parent === evaled);
-    assert.ok(evaled.a.a === 'a');
-    assert.ok(evaled.b.b === 'b');
+Essentially, the problem is that you cannot define and refer to an object in one statement. You need an instance of the object before you can refer to it. So we create instances, then set their connections in some order.
 
 ## Serializing custom objects
 
@@ -89,12 +111,3 @@ Here is an example of a custom object that works:
 
 During deserialization, the calls will be `instance = new Foo()` followed by `instance.deserialize("value_from_serialize")`.
 
-## Multiple references
-
-For objects which are referred to more than once, if [reference1] === [reference2] during the serialization, then the object will be only instantiated once in the serialized output. The other references will reuse the same instance.
-
-## Circular structures
-
-Circular structures can be serialized and deserialized. This is made possible even for custom objects, as long as they follow the rules.
-
-Essentially, the problem is that you cannot define and refer to an object in one statement. You need an instance of the object before you can refer to it. So we create instances, then set their connections in some order.
