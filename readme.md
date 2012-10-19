@@ -1,5 +1,6 @@
-# Implode
+# Snapshot
 
+## Javascript variable/state/scope serialization
 
 ## Supported:
 
@@ -13,22 +14,80 @@
 - undefined
 - object hashes consisting of any supported value
 - arrays consisting of any supported value
-- Instances of objects that define a serialize() function
+- Instances of objects that define a serialize() and a deserialize() function
 
 ## Unsupported
 
-- native functions
-- instances of objects that do not define a serialize function
+- native functions (e.g. you cannot serialize a reference to Array.prototype.map)
+- instances of objects that do not define a serialize() function (these will be serialized like object hashes, but they are not restored as instances of the right class)
 
-## Serialize function
+## Installation
 
-There is no constructor guessing.
+    npm install --save snapshot
 
-The serialize functions should return an array. The first argument of the array should be the name of the class (e.g. "Foo" if the constructor is called "Foo").
+(`--save` saves to the package.json file in the current directory, if it exists)
 
-The rest of the arguments should be arguments passed to the constructor when the object is instantiated.
+## API
 
-The definitions of the constructors are not serialized. Instead, they should be made available in a different way.
+- `.snapshot(hash)`: given a object hash, creates a string which is a standalone Javascript function that can be evaluated to produce the same objects with the right classes (as long as the definitions for custom objects are also available).
+
+Note again, that the argument must be a single hash - but it can contain any data.
+
+## Example
+
+    var snapshot = require('snapshot');
+
+    var value = { a: { a: 'a'}, b: { b: 'b'} };
+    value.a.sibling = value.b;
+    value.b.sibling = value.a;
+    value.a.parent = value;
+    value.b.parent = value;
+
+    var imploded = snapshot(value),
+        // using eval() to run the result
+        evaled = eval(imploded);
+
+    assert.ok(evaled.a.sibling === evaled.b);
+    assert.ok(evaled.b.sibling === evaled.a);
+    assert.ok(evaled.a.parent === evaled);
+    assert.ok(evaled.b.parent === evaled);
+    assert.ok(evaled.a.a === 'a');
+    assert.ok(evaled.b.b === 'b');
+
+## Serializing custom objects
+
+Snapshot doesn't try to be clever by guessing what to do with non-native objects. Instead, each custom object must follow these rules:
+
+1. It must be possible to instantiate the object via new Classname() without any parameters.
+   During deserialization, each object is first created without any data inside it.
+
+2. It must have a .serialize function.
+
+   During serialization, this function is called to get the data to be serialized.
+
+   The serialize functions should return an array. The first argument of the array should be the name of the class (e.g. "Foo" if the constructor is called "Foo").
+
+   The rest of the arguments should be data, which will be passed to the .deserialize() function in the same order.
+
+3. It must have a .deserialize function
+
+   The deserialize function should accept the parameteres
+
+The constructors and prototypes are not serialized. Instead, they should be made available in a different way, e.g. by packaging them. Just make sure that `new Foo()` works before deserializing.
+
+Here is an example of a custom object that works:
+
+    var Foo = function(name) {
+      this.name = name;
+    };
+    Foo.prototype.serialize = function() {
+      return ['Foo', this.name];
+    };
+    Foo.prototype.deserialize = function(name) {
+      this.name = name;
+    };
+
+During deserialization, the calls will be `instance = new Foo()` followed by `instance.deserialize("value_from_serialize")`.
 
 ## Multiple references
 
@@ -36,22 +95,6 @@ For objects which are referred to more than once, if [reference1] === [reference
 
 ## Circular structures
 
-Supports circular structures.
+Circular structures can be serialized and deserialized. This is made possible even for custom objects, as long as they follow the rules.
 
-For primitive objects, circular references can be resolved by transforming them into two steps:
-
-1. Define the object without any references to other objects.
-2. For each property that is a reference to another object, set it using the defined objects.
-
-Essentially, the problem is that you cannot define and refer to an object in one statement. You need an instance of the object before you can refer to it.
-
-For serializable objects, the approach is the same:
-
-1. Call new Foo() with null for each param that is an object
-2. Call instance.deserialize() with an array for each param that is an object
-
-More sophisticated serialization would actually look at the dependency graphs and see if it is possible to have a non-circular structure, and instantiate those in one go.
-
-I think there is simpler way: basically, have the new Foo() constructor work without parameters.
-
-Then take everything in the serialize() return value and pass it to deserialize directly. This way there is no uncertainty about how many times and with what params the deserialize call is done.
+Essentially, the problem is that you cannot define and refer to an object in one statement. You need an instance of the object before you can refer to it. So we create instances, then set their connections in some order.

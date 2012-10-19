@@ -1,10 +1,9 @@
 var assert = require('assert'),
-    implode = require('./index').implode,
-    explode = require('./index').explode;
+    snapshot = require('./index');
 
 function toStr(value) { return Object.prototype.toString.call(value); }
 
-exports['implode'] = {
+exports['snapshot'] = {
 
   'native types': function() {
     var expected = {
@@ -24,9 +23,9 @@ exports['implode'] = {
 
     Object.keys(expected).forEach(function(name) {
       var value = expected[name],
-          imploded = implode({ a: value }),
+          imploded = snapshot({ a: value }),
           evaled;
-      console.log(value, imploded);
+      // console.log(value, imploded);
       evaled = eval(imploded).a;
       if (typeof value !== 'function') {
         // deepequal doesn't work with function
@@ -54,17 +53,11 @@ exports['implode'] = {
 
     var value = new Foo('FooObj', { bar: 'baz'});
 
-    console.log(typeof value);
-    console.log(Object.prototype.toString.call(value));
-    console.log(value.prototype);
-    console.log(value.constructor);
-
-
-    var imploded = implode({ a: value }),
+    var imploded = snapshot({ a: value }),
         evaled;
-    console.log(value, imploded);
+//    console.log(value, imploded);
     evaled = eval(imploded);
-    console.log(evaled);
+//    console.log(evaled);
 
     evaled = evaled.a;
     assert.deepEqual(evaled, value, 'can serialize custom class');
@@ -82,32 +75,59 @@ exports['implode'] = {
     value.a.parent = value;
     value.b.parent = value;
 
-    console.log(value);
+//    console.log(value);
 
-    var imploded = implode(value);
-    console.log(imploded);
+    var imploded = snapshot(value);
+//    console.log(imploded);
+
+    var evaled = eval(imploded);
+
+    assert.ok(evaled.a.sibling === evaled.b);
+    assert.ok(evaled.b.sibling === evaled.a);
+    assert.ok(evaled.a.parent === evaled);
+    assert.ok(evaled.b.parent === evaled);
+    assert.ok(evaled.a.a === 'a');
+    assert.ok(evaled.b.b === 'b');
   },
 
-  'array of objects': function() {
+  'array of objects with circular references': function() {
     var Foo = function(name) {
       this.name = name;
+      this.friend = null;
     };
     Foo.prototype.serialize = function() {
-      return ['Foo', this.name];
+      return ['Foo', this.name, this.friend];
     };
-    Foo.prototype.deserialize = function(name) {
+    Foo.prototype.deserialize = function(name, friend) {
       this.name = name;
+      this.friend = friend;
     };
     var value =  { a: [ new Foo('a'), new Foo('b'), new Foo('c')] };
-    var imploded = implode(value),
+
+    value.a[0].friend = value.a[1];
+    value.a[1].friend = value.a[2];
+    value.a[2].friend = value.a[0];
+
+    var imploded = snapshot(value),
         evaled;
-    console.log(value, imploded);
+//    console.log(value, imploded);
     evaled = eval(imploded);
-    console.log(evaled);
+//    console.log(evaled);
 
     assert.equal(typeof evaled, typeof value, 'has same type');
     assert.equal(toStr(evaled), toStr(value), 'has same string when passed to native toString');
+    assert.equal(typeof evaled.a, typeof value.a);
+    assert.equal(evaled.a.length, value.a.length);
+    assert.equal(evaled.a[0].name, 'a');
+    assert.ok(evaled.a[0] instanceof Foo);
+    assert.equal(evaled.a[1].name, 'b');
+    assert.ok(evaled.a[1] instanceof Foo);
+    assert.equal(evaled.a[2].name, 'c');
+    assert.ok(evaled.a[2] instanceof Foo);
 
+    assert.strictEqual(evaled.a[0].friend, evaled.a[1]);
+    assert.strictEqual(evaled.a[1].friend, evaled.a[2]);
+    assert.strictEqual(evaled.a[2].friend, evaled.a[0]);
   }
 
 };
